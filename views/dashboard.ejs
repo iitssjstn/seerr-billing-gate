@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Seerr Billing Gate</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Seerr Billing Gate</h1>
+    <nav class="topnav">
+      <a href="/" class="active">Dashboard</a>
+      <a href="/settings">Instellingen</a>
+      <form method="POST" action="/logout"><button class="link-btn">Uitloggen</button></form>
+    </nav>
+  </header>
+
+  <main>
+    <% if (!seerrConfigured) { %>
+      <p class="flash warning">
+        Seerr is nog niet gekoppeld. Ga naar
+        <a href="/settings">Instellingen</a> om de URL en API key in te vullen
+        voor je leden kan activeren.
+      </p>
+    <% } %>
+    <% if (message) { %><p class="flash success"><%= message %></p><% } %>
+    <% if (error) { %><p class="flash error"><%= error %></p><% } %>
+
+    <section class="card">
+      <h2>Nieuw lid toevoegen</h2>
+      <form method="POST" action="/members" class="inline-form">
+        <input type="text" name="name" placeholder="Naam" required>
+        <input type="email" name="email" placeholder="E-mailadres" required>
+        <button type="submit">Toevoegen</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Leden</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Naam</th>
+            <th>E-mail</th>
+            <th>Status</th>
+            <th>Actief tot</th>
+            <th>Acties</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% members.forEach(function(m) { %>
+            <tr class="<%= m.status === 'active' ? (m.paid_until && m.paid_until < today ? 'expiring' : 'active') : 'inactive' %>">
+              <td><%= m.name %></td>
+              <td><%= m.email %></td>
+              <td><%= m.status === 'active' ? 'Actief' : 'Inactief' %></td>
+              <td><%= m.paid_until || '-' %></td>
+              <td class="actions">
+                <form method="POST" action="/members/<%= m.id %>/mark-paid">
+                  <button type="submit">Markeer betaald</button>
+                </form>
+                <form method="POST" action="/members/<%= m.id %>/revoke" onsubmit="return confirm('Toegang van <%= m.name %> intrekken?');">
+                  <button type="submit" class="danger">Intrekken</button>
+                </form>
+                <form method="POST" action="/members/<%= m.id %>/delete" onsubmit="return confirm('Lid <%= m.name %> volledig verwijderen?');">
+                  <button type="submit" class="danger-outline">Verwijderen</button>
+                </form>
+              </td>
+            </tr>
+          <% }); %>
+          <% if (members.length === 0) { %>
+            <tr><td colspan="5">Nog geen leden toegevoegd.</td></tr>
+          <% } %>
+        </tbody>
+      </table>
+    </section>
+  </main>
+</body>
+</html>

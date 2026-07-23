@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Account aanmaken - Seerr Billing Gate</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="login-box">
+    <h1>Welkom</h1>
+    <p class="hint" style="margin-bottom:1rem;">
+      Er is nog geen admin-account. Maak er hier één aan om verder te gaan.
+    </p>
+    <% if (error) { %>
+      <p class="error"><%= error %></p>
+    <% } %>
+    <form method="POST" action="/setup">
+      <label>
+        Gebruikersnaam
+        <input type="text" name="username" autofocus required autocomplete="username">
+      </label>
+      <label>
+        Wachtwoord (minimaal 8 tekens)
+        <input type="password" name="password" required minlength="8" autocomplete="new-password">
+      </label>
+      <label>
+        Wachtwoord herhalen
+        <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password">
+      </label>
+      <button type="submit">Account aanmaken</button>
+    </form>
+  </main>
+</body>
+</html>

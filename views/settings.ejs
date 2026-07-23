@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Instellingen - Seerr Billing Gate</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Seerr Billing Gate</h1>
+    <nav class="topnav">
+      <a href="/">Dashboard</a>
+      <a href="/settings" class="active">Instellingen</a>
+      <form method="POST" action="/logout"><button class="link-btn">Uitloggen</button></form>
+    </nav>
+  </header>
+
+  <main>
+    <% if (message) { %><p class="flash success"><%= message %></p><% } %>
+    <% if (error) { %><p class="flash error"><%= error %></p><% } %>
+
+    <section class="card">
+      <h2>Seerr-koppeling</h2>
+      <form method="POST" action="/settings">
+        <label class="field">
+          Seerr URL
+          <input type="text" name="seerr_url" value="<%= seerrUrl %>" placeholder="https://seerr.jouwdomein.nl" required>
+        </label>
+
+        <label class="field">
+          Seerr API key
+          <input type="password" name="seerr_api_key" placeholder="<%= hasApiKey ? '•••••••••••• (blijft ongewijzigd als je dit leeg laat)' : 'Plak hier je API key' %>">
+          <span class="hint">Te vinden in Seerr onder Instellingen &rarr; Algemeen &rarr; API key.</span>
+        </label>
+
+        <label class="field">
+          Toegangsperiode na "markeer betaald" (dagen)
+          <input type="number" name="payment_period_days" value="<%= paymentPeriodDays %>" min="1" required>
+        </label>
+
+        <label class="field checkbox">
+          <input type="checkbox" name="auto_revoke" <%= autoRevoke ? 'checked' : '' %>>
+          Automatisch toegang intrekken zodra de periode verstreken is (dagelijkse check om 04:00)
+        </label>
+
+        <div class="actions">
+          <button type="submit">Opslaan</button>
+        </div>
+      </form>
+
+      <form method="POST" action="/settings/test" class="test-form">
+        <button type="submit" class="secondary">Verbinding testen</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Mijn account (ingelogd als <%= adminUsername %>)</h2>
+      <form method="POST" action="/account">
+        <label class="field">
+          Nieuwe gebruikersnaam
+          <input type="text" name="new_username" placeholder="<%= adminUsername %>" autocomplete="username">
+        </label>
+        <label class="field">
+          Nieuw wachtwoord
+          <input type="password" name="new_password" placeholder="Laat leeg om ongewijzigd te laten" minlength="8" autocomplete="new-password">
+        </label>
+        <label class="field">
+          Nieuw wachtwoord herhalen
+          <input type="password" name="new_password_confirm" autocomplete="new-password">
+        </label>
+        <label class="field">
+          Huidig wachtwoord (verplicht om wijzigingen te bevestigen)
+          <input type="password" name="current_password" required autocomplete="current-password">
+        </label>
+        <div class="actions">
+          <button type="submit">Account bijwerken</button>
+        </div>
+      </form>
+    </section>
+  </main>
+</body>
+</html>

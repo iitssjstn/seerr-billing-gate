@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Inloggen - Seerr Billing Gate</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="login-box">
+    <h1>Seerr Billing Gate</h1>
+    <% if (error) { %>
+      <p class="error"><%= error %></p>
+    <% } %>
+    <form method="POST" action="/login">
+      <label>
+        Gebruikersnaam
+        <input type="text" name="username" autofocus required autocomplete="username">
+      </label>
+      <label>
+        Wachtwoord
+        <input type="password" name="password" required autocomplete="current-password">
+      </label>
+      <button type="submit">Inloggen</button>
+    </form>
+  </main>
+</body>
+</html>
