@@ -276,17 +276,35 @@ app.post('/members/:id/revoke', requireAuth, async (req, res) => {
   if (!member) return res.redirect('/?error=Lid niet gevonden');
 
   try {
-    if (member.seerr_user_id) {
-      await seerr.deleteUser(member.seerr_user_id);
+    let seerrUserId = member.seerr_user_id;
+
+    // Vangnet: geen seerr_user_id opgeslagen (bv. handmatig aangemaakte
+    // leden of oudere data)? Toch proberen op e-mailadres te vinden voor
+    // we de status intrekken, zodat "Intrekken" nooit stilletjes niks doet.
+    if (!seerrUserId && seerr.isConfigured()) {
+      const found = await seerr.findUserByEmail(member.email);
+      if (found) seerrUserId = found.id;
     }
+
+    let deleted = false;
+    if (seerrUserId) {
+      await seerr.deleteUser(seerrUserId);
+      deleted = true;
+    }
+
     db.prepare(
       `UPDATE members
        SET status = 'inactive', seerr_user_id = NULL, updated_at = datetime('now')
        WHERE id = ?`
     ).run(member.id);
 
-    logActivity(member.id, 'revoke');
-    res.redirect('/?message=' + encodeURIComponent(`Toegang van ${member.name} ingetrokken`));
+    logActivity(member.id, 'revoke', deleted ? '' : 'geen Seerr-account gevonden om te verwijderen');
+
+    if (deleted) {
+      res.redirect('/?message=' + encodeURIComponent(`Toegang van ${member.name} ingetrokken`));
+    } else {
+      res.redirect('/?error=' + encodeURIComponent(`Let op: er was geen Seerr-account gekoppeld aan ${member.name} (op ID of e-mailadres) - er is dus niets verwijderd in Seerr zelf. Status is lokaal wel op inactief gezet.`));
+    }
   } catch (e) {
     console.error(e.response?.data || e.message);
     res.redirect('/?error=' + encodeURIComponent('Kon Seerr-account niet verwijderen: ' + (e.response?.data?.message || e.message)));
@@ -300,8 +318,13 @@ app.post('/members/:id/delete', requireAuth, async (req, res) => {
   if (!member) return res.redirect('/?error=Lid niet gevonden');
 
   try {
-    if (member.seerr_user_id) {
-      await seerr.deleteUser(member.seerr_user_id).catch(() => {});
+    let seerrUserId = member.seerr_user_id;
+    if (!seerrUserId && seerr.isConfigured()) {
+      const found = await seerr.findUserByEmail(member.email).catch(() => null);
+      if (found) seerrUserId = found.id;
+    }
+    if (seerrUserId) {
+      await seerr.deleteUser(seerrUserId).catch(() => {});
     }
     db.prepare('DELETE FROM members WHERE id = ?').run(member.id);
     res.redirect('/?message=Lid verwijderd');
