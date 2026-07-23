@@ -30,20 +30,17 @@ automatisch het aanmaken/verwijderen van het Seerr-account.
 ```bash
 git clone https://github.com/<jouw-gebruikersnaam>/seerr-billing-gate.git
 cd seerr-billing-gate
-cp .env.example .env
-```
-
-Vul in `.env` alleen een sessiegeheim in:
-
-```bash
-openssl rand -hex 32
-```
-
-Start de app (pullt de kant-en-klare image van GHCR, geen lokale build nodig):
-
-```bash
 docker compose up -d
 ```
+
+Dat is alles — er is geen `.env`-bestand nodig om te starten. De app
+genereert bij de eerste start zelf een sessiegeheim (opgeslagen in de
+database, overleeft herstarts) en vraagt bij het eerste bezoek om een
+admin-account aan te maken.
+
+> Vereist Docker Compose v2.24 of nieuwer (voor de optionele `env_file`).
+> Ouder? Maak dan zelf even een leeg `.env`-bestand aan naast
+> `docker-compose.yml` voor je start.
 
 Ga naar `http://<jouw-server>:3010`:
 
@@ -54,13 +51,17 @@ Ga naar `http://<jouw-server>:3010`:
    "Verbinding testen" om te checken of het klopt.
 3. Klaar - je kan nu leden toevoegen en beheren vanaf het dashboard.
 
+Wil je toch iets vastzetten (bv. een vaste poort of een zelfgekozen
+sessiegeheim)? Kopieer `.env.example` naar `.env` en vul aan.
+
 ## Zonder Docker
 
 ```bash
 npm install
-cp .env.example .env   # SESSION_SECRET invullen
 npm start
 ```
+
+(optioneel: `cp .env.example .env` als je iets wilt vastzetten)
 
 ## Hoe het werkt
 
