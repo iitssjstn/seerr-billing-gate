@@ -44,6 +44,15 @@ db.exec(`
   );
 `);
 
+// Kleine migratie voor bestaande databases: is_free-kolom toevoegen als
+// die er nog niet is (nieuwe installaties krijgen 'm al via CREATE TABLE
+// hierboven zodra we die aanpassen zou zijn, maar voor bestaande data
+// gebruiken we ALTER TABLE zodat niemand data kwijtraakt).
+const memberColumns = db.prepare('PRAGMA table_info(members)').all().map((c) => c.name);
+if (!memberColumns.includes('is_free')) {
+  db.exec('ALTER TABLE members ADD COLUMN is_free INTEGER NOT NULL DEFAULT 0');
+}
+
 function logActivity(memberId, action, detail = '') {
   db.prepare(
     'INSERT INTO activity_log (member_id, action, detail) VALUES (?, ?, ?)'

@@ -49,14 +49,17 @@
         </thead>
         <tbody>
           <% members.forEach(function(m) { %>
-            <tr class="<%= m.status === 'active' ? (m.paid_until && m.paid_until < today ? 'expiring' : 'active') : 'inactive' %>">
+            <tr class="<%= m.status === 'active' ? (m.is_free ? 'active' : (m.paid_until && m.paid_until < today ? 'expiring' : 'active')) : 'inactive' %>">
               <td><%= m.name %></td>
               <td><%= m.email %></td>
               <td><%= m.status === 'active' ? 'Actief' : 'Inactief' %></td>
-              <td><%= m.paid_until || '-' %></td>
+              <td><%= m.status === 'active' && m.is_free ? 'Gratis (geen vervaldatum)' : (m.paid_until || '-') %></td>
               <td class="actions">
                 <form method="POST" action="/members/<%= m.id %>/mark-paid">
                   <button type="submit">Markeer betaald</button>
+                </form>
+                <form method="POST" action="/members/<%= m.id %>/mark-free" onsubmit="return confirm('<%= m.name %> als gratis lid activeren (geen vervaldatum, geen automatisch intrekken)?');">
+                  <button type="submit" class="secondary">Gratis maken</button>
                 </form>
                 <form method="POST" action="/members/<%= m.id %>/revoke" onsubmit="return confirm('Toegang van <%= m.name %> intrekken?');">
                   <button type="submit" class="danger">Intrekken</button>

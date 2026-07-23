@@ -150,6 +150,8 @@ app.get('/settings', requireAuth, (req, res) => {
     paymentPeriodDays: paymentPeriodDays(),
     autoRevoke: autoRevokeEnabled(),
     adminUsername: req.session.adminUsername,
+    currentAdminId: req.session.adminId,
+    allAdmins: admins.listAdmins(),
     error: req.query.error || null,
     message: req.query.message || null,
   });
@@ -219,6 +221,43 @@ app.post('/account', requireAuth, async (req, res) => {
   res.redirect('/settings?message=' + encodeURIComponent('Account bijgewerkt'));
 });
 
+// ---------- Extra admin-accounts beheren ----------
+
+app.post('/admins', requireAuth, async (req, res) => {
+  const { username, password, password_confirm } = req.body;
+
+  if (!username || !username.trim()) {
+    return res.redirect('/settings?error=' + encodeURIComponent('Vul een gebruikersnaam in.'));
+  }
+  if (admins.findByUsername(username)) {
+    return res.redirect('/settings?error=' + encodeURIComponent('Die gebruikersnaam is al in gebruik.'));
+  }
+  if (!password || password.length < 8) {
+    return res.redirect('/settings?error=' + encodeURIComponent('Wachtwoord moet minimaal 8 tekens zijn.'));
+  }
+  if (password !== password_confirm) {
+    return res.redirect('/settings?error=' + encodeURIComponent('Wachtwoorden komen niet overeen.'));
+  }
+
+  await admins.createAdmin(username, password);
+  res.redirect('/settings?message=' + encodeURIComponent(`Account "${username.trim().toLowerCase()}" aangemaakt`));
+});
+
+app.post('/admins/:id/delete', requireAuth, (req, res) => {
+  const targetId = Number(req.params.id);
+
+  if (targetId === req.session.adminId) {
+    return res.redirect('/settings?error=' + encodeURIComponent('Je kan je eigen account hier niet verwijderen (log in met een ander account om dit account te verwijderen).'));
+  }
+
+  try {
+    admins.deleteAdmin(targetId);
+    res.redirect('/settings?message=' + encodeURIComponent('Account verwijderd'));
+  } catch (e) {
+    res.redirect('/settings?error=' + encodeURIComponent(e.message));
+  }
+});
+
 // ---------- Leden beheren ----------
 
 app.post('/members', requireAuth, (req, res) => {
@@ -257,12 +296,42 @@ app.post('/members/:id/mark-paid', requireAuth, async (req, res) => {
 
     db.prepare(
       `UPDATE members
-       SET status = 'active', seerr_user_id = ?, paid_until = ?, updated_at = datetime('now')
+       SET status = 'active', seerr_user_id = ?, paid_until = ?, is_free = 0, updated_at = datetime('now')
        WHERE id = ?`
     ).run(seerrUser.id, paidUntil.toISOString().slice(0, 10), member.id);
 
     logActivity(member.id, 'mark_paid', `paid_until=${paidUntil.toISOString().slice(0, 10)}`);
     res.redirect('/?message=' + encodeURIComponent(`${member.name} is actief tot ${paidUntil.toISOString().slice(0, 10)}`));
+  } catch (e) {
+    console.error(e.response?.data || e.message);
+    res.redirect('/?error=' + encodeURIComponent('Kon Seerr-account niet aanmaken/koppelen: ' + (e.response?.data?.message || e.message)));
+  }
+});
+
+app.post('/members/:id/mark-free', requireAuth, async (req, res) => {
+  if (!seerr.isConfigured()) {
+    return res.redirect('/?error=' + encodeURIComponent('Koppel eerst Seerr bij Instellingen voor je leden kan activeren.'));
+  }
+
+  const member = db
+    .prepare('SELECT * FROM members WHERE id = ?')
+    .get(req.params.id);
+  if (!member) return res.redirect('/?error=Lid niet gevonden');
+
+  try {
+    const seerrUser = await seerr.ensureUser({
+      email: member.email,
+      username: member.name,
+    });
+
+    db.prepare(
+      `UPDATE members
+       SET status = 'active', seerr_user_id = ?, paid_until = NULL, is_free = 1, updated_at = datetime('now')
+       WHERE id = ?`
+    ).run(seerrUser.id, member.id);
+
+    logActivity(member.id, 'mark_free');
+    res.redirect('/?message=' + encodeURIComponent(`${member.name} is actief als gratis lid (geen vervaldatum)`));
   } catch (e) {
     console.error(e.response?.data || e.message);
     res.redirect('/?error=' + encodeURIComponent('Kon Seerr-account niet aanmaken/koppelen: ' + (e.response?.data?.message || e.message)));
@@ -294,7 +363,7 @@ app.post('/members/:id/revoke', requireAuth, async (req, res) => {
 
     db.prepare(
       `UPDATE members
-       SET status = 'inactive', seerr_user_id = NULL, updated_at = datetime('now')
+       SET status = 'inactive', seerr_user_id = NULL, is_free = 0, updated_at = datetime('now')
        WHERE id = ?`
     ).run(member.id);
 
@@ -350,7 +419,7 @@ async function runExpiryCheck() {
         await seerr.deleteUser(member.seerr_user_id);
       }
       db.prepare(
-        `UPDATE members SET status = 'inactive', seerr_user_id = NULL, updated_at = datetime('now') WHERE id = ?`
+        `UPDATE members SET status = 'inactive', seerr_user_id = NULL, is_free = 0, updated_at = datetime('now') WHERE id = ?`
       ).run(member.id);
       logActivity(member.id, 'auto_revoke', 'paid_until verstreken');
       console.log(`[cron] Toegang ingetrokken voor ${member.email} (contributie verlopen)`);

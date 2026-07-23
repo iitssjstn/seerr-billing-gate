@@ -77,6 +77,53 @@
         </div>
       </form>
     </section>
+
+    <section class="card">
+      <h2>Andere admins</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Gebruikersnaam</th>
+            <th>Aangemaakt</th>
+            <th>Acties</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% allAdmins.forEach(function(a) { %>
+            <tr>
+              <td><%= a.username %><%= a.id === currentAdminId ? ' (jij)' : '' %></td>
+              <td><%= a.created_at %></td>
+              <td class="actions">
+                <% if (a.id !== currentAdminId) { %>
+                  <form method="POST" action="/admins/<%= a.id %>/delete" onsubmit="return confirm('Account \'<%= a.username %>\' verwijderen?');">
+                    <button type="submit" class="danger-outline">Verwijderen</button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+
+      <h2 style="margin-top:1.5rem;">Nieuw admin-account toevoegen</h2>
+      <form method="POST" action="/admins">
+        <label class="field">
+          Gebruikersnaam
+          <input type="text" name="username" required autocomplete="username">
+        </label>
+        <label class="field">
+          Wachtwoord (minimaal 8 tekens)
+          <input type="password" name="password" required minlength="8" autocomplete="new-password">
+        </label>
+        <label class="field">
+          Wachtwoord herhalen
+          <input type="password" name="password_confirm" required minlength="8" autocomplete="new-password">
+        </label>
+        <div class="actions">
+          <button type="submit">Account toevoegen</button>
+        </div>
+      </form>
+    </section>
   </main>
 </body>
 </html>

@@ -5,6 +5,21 @@ function adminCount() {
   return db.prepare('SELECT COUNT(*) AS n FROM admins').get().n;
 }
 
+function listAdmins() {
+  return db
+    .prepare('SELECT id, username, created_at FROM admins ORDER BY created_at ASC')
+    .all();
+}
+
+function deleteAdmin(id) {
+  // Nooit de laatste admin laten verwijderen, anders kan niemand meer
+  // inloggen en zit je klem zonder /setup opnieuw te kunnen draaien.
+  if (adminCount() <= 1) {
+    throw new Error('Kan het laatste admin-account niet verwijderen.');
+  }
+  db.prepare('DELETE FROM admins WHERE id = ?').run(id);
+}
+
 function findByUsername(username) {
   return db
     .prepare('SELECT * FROM admins WHERE username = ?')
@@ -60,6 +75,8 @@ function migrateLegacyPasswordHash() {
 
 module.exports = {
   adminCount,
+  listAdmins,
+  deleteAdmin,
   findByUsername,
   findById,
   createAdmin,
